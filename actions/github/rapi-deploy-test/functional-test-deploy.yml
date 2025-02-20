@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with use of ReadyAPI in Actions
 
-# It uses three repository variables (Settings >> Secrets and Variables >> Actions)
+# It uses three repository variables which have to be add to repository (Settings >> Secrets and Variables >> Actions)
 # vars.RAPI_VERSION --> variable to lock installation/commands/paths specific version of ReadyAPI
 # vars.EXEC_PARAMETERS --> variable to import testrunner command-line arguments for each run (more in ReadyAPI Docs)
 # secrets.SLM_ACCESSKEY --> secret to secure Access key which authorize a floating license check-out (more in ReadyAPI Docs)
