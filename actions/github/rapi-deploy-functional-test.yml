@@ -1,0 +1,63 @@
+# This is a basic workflow to help you get started with use of ReadyAPI in Actions
+
+# It uses three repository variables (Settings >> Secrets and Variables >> Actions)
+# vars.RAPI_VERSION --> variable to lock installation/commands/paths specific version of ReadyAPI
+# vars.EXEC_PARAMETERS --> variable to import testrunner command-line arguments for each run (more in ReadyAPI Docs)
+# secrets.SLM_ACCESSKEY --> secret to secure Access key which authorize a floating license check-out (more in ReadyAPI Docs)
+
+name: ReadyAPI-CI
+
+# List that controls when the workflow will run
+on:
+  # e.g. Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  # Option allows you to trigger this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel(Default)
+jobs:
+  # First example of two jobs created in this workflow. It download/install ReadyAPI and execute testrunner after
+  func-test-with-bare-install:
+    # The type of runner that the job will run on (Manual install can be done on Windows and macOS but requires adjusting commands)
+    runs-on: ubuntu-latest
+
+    steps:
+      # Common GitHub Action. Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it 
+      #( by default ReadyAPI Composite project file will be in $GITHUB_WORKSPACE location until changed in actions/checkout@v4 options)
+      - name: Checkout ReadyAPI project files
+        uses: actions/checkout@v4
+        with:
+          path: './rest-test-project/'
+
+      # Runs a set of commands that will install ReadyAPI on test enviroment
+      - name: Install ReadyAPI instance
+        run: |
+         echo Dwonload ReadyAPI clint,
+         wget "https://dl.eviware.com/ready-api/${{ vars.RAPI_VERSION }}/ReadyAPI-x64-${{ vars.RAPI_VERSION }}.sh"
+         chmod +x $GITHUB_WORKSPACE/ReadyAPI-x64-${{ vars.RAPI_VERSION }}.sh
+         echo Installation of ReadyAPI in silent mode
+         sudo sh $GITHUB_WORKSPACE/ReadyAPI-x64-${{ vars.RAPI_VERSION }}.sh -q
+
+      - name: Execute test with installed ReadyAPI
+        run: sudo /opt/SmartBear/ReadyAPI-${{ vars.RAPI_VERSION }}/bin/testrunner.sh -accessKey ${{ secrets.SLM_ACCESSKEY }} ${{ vars.EXEC_PARAMETERS }} -r $GITHUB_WORKSPACE/rest-test-project
+
+  # One of two jobs created in this workflow. It download and execute Functional test in Docker container.
+  func-test-with-docker:
+    # The type of runner that the job will run on. In Docker scenario it is only possible on ubuntu.
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it 
+      #( by default ReadyAPI Composite project file will be in $GITHUB_WORKSPACE location until changed in actions/checkout@v4 options)
+      - name: Checkout ReadyAPI project files
+        uses: actions/checkout@v4
+        with:
+          path: './rest-test-project/'
+
+      # Runs ReadyAPI Functional test in Docker container with single command
+      - name: Start ReadyAPI Funtional test
+        run: docker run -v=$GITHUB_WORKSPACE/rest-test-project:/project -e SLM_LICENSE_SERVER="https://api.slm.manage.smartbear.com:443" -e API_KEY=${{ secrets.SLM_ACCESSKEY }} -e COMMAND_LINE="${{ vars.EXEC_PARAMETERS }} -r '/%project%/'" -i smartbear/ready-api-soapui-testrunner:${{ vars.RAPI_VERSION }}
